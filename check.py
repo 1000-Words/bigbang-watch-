@@ -36,6 +36,7 @@ STATE_FILE = Path("state.json")
 DEBUG_DIR = Path("debug")
 ALERT_COOLDOWN = 30 * 60        # don't repeat availability alerts within 30 min
 PROBLEM_COOLDOWN = 6 * 60 * 60  # "watcher has a problem" alerts at most every 6 h
+TICKET_REPEAT = 6               # ticket alerts are sent this many times, 10 s apart
 
 # Reads the label of the button that sits next to "Seat map" in the event header.
 CTA_JS = r"""
@@ -62,8 +63,9 @@ CTA_JS = r"""
 """
 
 
-def push(title, msg, url=None, priority="urgent"):
-    print(f"ALERT | {title}: {msg}", flush=True)
+def push(title, msg, url=None, priority="urgent", repeat=1, gap=10):
+    """Send an ntfy notification. repeat>1 sends it several times, gap seconds apart."""
+    print(f"ALERT | {title}: {msg} (x{repeat})", flush=True)
     topic = os.environ.get("NTFY_TOPIC", "").strip()
     if not topic:
         print("NTFY_TOPIC not set; skipping push")
@@ -71,11 +73,15 @@ def push(title, msg, url=None, priority="urgent"):
     headers = {"Title": title, "Priority": priority, "Tags": "ticket"}
     if url:
         headers["Click"] = url
-    try:
-        req = urllib.request.Request(f"https://ntfy.sh/{topic}", data=msg.encode("utf-8"), headers=headers)
-        urllib.request.urlopen(req, timeout=15)
-    except Exception as e:
-        print(f"ntfy push failed: {e}")
+    for i in range(repeat):
+        body = msg if repeat == 1 else f"{msg} ({i + 1}/{repeat})"
+        try:
+            req = urllib.request.Request(f"https://ntfy.sh/{topic}", data=body.encode("utf-8"), headers=headers)
+            urllib.request.urlopen(req, timeout=15)
+        except Exception as e:
+            print(f"ntfy push failed: {e}")
+        if i < repeat - 1:
+            time.sleep(gap)
 
 
 # Scrolls every scrollable box on the page (i.e. the notice's text area) to the bottom
@@ -220,11 +226,12 @@ def main():
                 push("BIGBANG watcher is live", f"Status button currently says: {s['cta'].title()}",
                      url, priority="default")
                 if s["cta"] != "sold out":
-                    push("BIGBANG tickets?", f"Status button says \"{s['cta'].title()}\", not Sold Out.", url)
+                    push("BIGBANG tickets?", f"Status button says \"{s['cta'].title()}\", not Sold Out.", url, repeat=TICKET_REPEAT)
                     prev["last_alert"] = now
             elif s["cta"] != prev["cta"] and s["cta"] != "sold out":
                 if now - prev.get("last_alert", 0) > ALERT_COOLDOWN:
-                    push("BIGBANG tickets?", f"Status changed: \"{prev['cta'].title()}\" → \"{s['cta'].title()}\"", url)
+                    push("BIGBANG tickets?", f"Status changed: \"{prev['cta'].title()}\" → \"{s['cta'].title()}\"", url,
+                         repeat=TICKET_REPEAT)
                     prev["last_alert"] = now
 
             prev.update({"url": url, "cta": s["cta"]})
