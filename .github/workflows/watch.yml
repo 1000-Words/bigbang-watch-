@@ -1,0 +1,59 @@
+name: BIGBANG ticket watch
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # GitHub's minimum; runs often start a few minutes late
+  workflow_dispatch:         # lets you trigger a run manually from the Actions tab
+
+permissions:
+  contents: write            # needed to commit state.json
+
+concurrency:
+  group: bigbang-watch
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Playwright + Chromium
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Check ticket pages
+        env:
+          EVENT_URLS: ${{ vars.EVENT_URLS }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python check.py
+
+      - name: Upload screenshots (check these on your first runs)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: page-screenshots
+          path: debug/
+          retention-days: 1
+          if-no-files-found: ignore
+
+      - name: Save state for next run
+        if: always()
+        run: |
+          git config user.name "bigbang-watch"
+          git config user.email "bigbang-watch@users.noreply.github.com"
+          [ -f state.json ] || exit 0
+          git add state.json
+          if git diff --cached --quiet; then
+            echo "No state change"
+          else
+            git commit -m "Update watch state"
+            git pull --rebase --quiet
+            git push
+          fi
