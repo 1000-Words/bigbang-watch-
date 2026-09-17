@@ -31,7 +31,7 @@ jobs:
       - name: Check ticket pages
         env:
           EVENT_URLS: ${{ vars.EVENT_URLS }}
-          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          NTFY_TOPIC: ${{ vars.NTFY_TOPIC }}
         run: python check.py
 
       - name: Upload screenshots (check these on your first runs)
