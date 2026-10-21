@@ -3,7 +3,7 @@
     "cta": "sold out",
     "last_alert": 1792590938.5682096,
     "problem_alert": 1792577135.799691,
-    "queue": true,
+    "queue": false,
     "url": "https://hkt.hkticketing.com/en/#/allEvents/detail?projectId=50000001568003"
   }
 }
