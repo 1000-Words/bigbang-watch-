@@ -2,8 +2,8 @@
   "7535e550c7": {
     "cta": "sold out",
     "last_alert": 1792556439.8956895,
-    "problem_alert": 1792555245.8043249,
-    "queue": true,
+    "problem_alert": 1792577135.799691,
+    "queue": false,
     "url": "https://hkt.hkticketing.com/en/#/allEvents/detail?projectId=50000001568003"
   }
 }
