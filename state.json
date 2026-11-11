@@ -3,7 +3,7 @@
     "cta": "not available now",
     "last_alert": 1794403534.4867072,
     "problem_alert": 1794402939.396776,
-    "queue": true,
+    "queue": false,
     "url": "https://hkt.hkticketing.com/en/#/allEvents/detail?projectId=50000001568003"
   }
 }
